@@ -17,6 +17,14 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(frontendDir, "index.html"));
 });
 
+app.get("/yourgroup.html", (req, res) => {
+  res.sendFile(path.join(frontendDir, "yourGroup.html"));
+});
+
+app.get("/creategroup.html", (req, res) => {
+  res.sendFile(path.join(frontendDir, "createGroup.html"));
+});
+
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,6 +52,45 @@ db.run(`
     group_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     UNIQUE(group_id, user_id)
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    recurrence TEXT,
+    priority TEXT,
+    deadline TEXT
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS task_assignees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    UNIQUE(task_id, user_id)
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    description TEXT,
+    total_cost REAL NOT NULL
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS payment_assignees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    payment_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    UNIQUE(payment_id, user_id)
   )
 `);
 
@@ -121,8 +168,8 @@ app.post("/api/create-group", (req, res) => {
 
         // Automatically join the user to the new group
         db.run(
-          `INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)`,
-          [userId, groupId],
+          `INSERT INTO group_members (group_id, user_id) VALUES (?, ?)`,
+          [groupId, userId],
           function (err) {
             if (err) {
               console.error("Error joining group after creation:", err);
@@ -157,8 +204,8 @@ app.post("/api/join-group", (req, res) => {
     }
 
     db.run(
-      "INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?, ?)",
-      [userId, group.id],
+      "INSERT OR IGNORE INTO group_members (group_id, user_id) VALUES (?, ?)",
+      [group.id, userId],
       function (err) {
         if (err) {
           console.error("Error joining group:", err);
@@ -195,6 +242,29 @@ app.get("/api/groups/:userId", (req, res) => {
   );
 });
 
+app.get("/api/groups", (req, res) => {
+  const userId = req.query.userId;
+
+  if (!userId) {
+    return db.all("SELECT id, name FROM groups", [], (err, rows) => {
+      if (err) return res.status(500).send("Could not load groups");
+      res.json(rows);
+    });
+  }
+
+  db.all(
+    `SELECT groups.id, groups.name
+     FROM groups
+     JOIN group_members ON groups.id = group_members.group_id
+     WHERE group_members.user_id = ?`,
+    [userId],
+    (err, rows) => {
+      if (err) return res.status(500).send("Could not load groups");
+      res.json(rows);
+    }
+  );
+});
+
 app.get("/api/user-groups", (req, res) => {
   const userId = req.query.userId;
   if (!userId) return res.status(400).send("User ID is required");
@@ -202,8 +272,8 @@ app.get("/api/user-groups", (req, res) => {
   db.all(
     `SELECT g.id, g.name, g.code, g.description
      FROM groups g
-     JOIN user_groups ug ON g.id = ug.group_id
-     WHERE ug.user_id = ?`,
+     JOIN group_members gm ON g.id = gm.group_id
+     WHERE gm.user_id = ?`,
     [userId],
     (err, rows) => {
       if (err) return res.status(500).send("Could not load groups");
@@ -267,8 +337,8 @@ app.get("/api/group-users/:groupId", (req, res) => {
   db.all(`
     SELECT users.id, users.first_name, users.last_name
     FROM users
-    JOIN user_groups ON users.id = user_groups.user_id
-    WHERE user_groups.group_id = ?
+    JOIN group_members ON users.id = group_members.user_id
+    WHERE group_members.group_id = ?
   `, [groupId], (err, rows) => {
     if (err) return res.status(500).send("Error getting users");
     res.json(rows);

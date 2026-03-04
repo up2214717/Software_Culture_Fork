@@ -502,10 +502,20 @@ if (exportCostBtn) {
 }
 
 function loadGroups() {
-  fetch("/api/groups")
+    const userId = localStorage.getItem("userId");
+
+    if (!userId) {
+        return;
+    }
+
+    fetch(`/api/groups/${userId}`)
     .then((res) => res.json())
     .then((groups) => {
       const groupList = document.querySelector("#group-list");
+            if (!groupList) {
+                return;
+            }
+
       groupList.innerHTML = "";
 
       if (groups.length === 0) {
