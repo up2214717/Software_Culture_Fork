@@ -7,13 +7,13 @@
   },
   "type": "module",
   "scripts": {
-    "start": "nodemon svr.cjs",
+    "start": "nodemon backend/svr.cjs",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "name": "house-sharing-app",
   "version": "1.0.0",
   "description": "Can edit",
-  "main": "database.js",
+  "main": "backend/database.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
