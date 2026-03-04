@@ -87,7 +87,7 @@ function loadYourGroups() {
 
         groups.forEach(group => {
           const p = document.createElement("p");
-          p.textContent = `Group ID: ${group.id}, Name: ${group.group_name}`;
+          p.textContent = `Group ID: ${group.id}, Name: ${group.name}`;
           container.appendChild(p);
         });
       }
