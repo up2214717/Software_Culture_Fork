@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "start": "nodemon backend/svr.cjs",
+    "lint": "eslint . --ext .js,.cjs,.mjs",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "name": "house-sharing-app",
@@ -19,6 +20,7 @@
     "test": "tests"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.0.0-beta.3"
   },
